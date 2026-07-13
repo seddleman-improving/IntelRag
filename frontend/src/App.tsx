@@ -236,7 +236,7 @@ export default function App() {
 
         <main className="flex-1 overflow-y-auto px-6 py-8 space-y-8">
           <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="mb-3 text-sm font-semibold text-slate-700">Ask the Intelligence Platform</h2>
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">Ask the Intelligence Platform</h2>
             <textarea
               ref={textareaRef}
               value={question}
