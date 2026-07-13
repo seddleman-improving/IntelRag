@@ -22,6 +22,19 @@ cp .env.example .env
 
 ---
 
+## Build the Vector Index (first time + after adding data)
+
+After cloning, or whenever you add/change files in `data/`, rebuild the Chroma vector store:
+
+```bash
+uv run python scripts/ingest.py
+```
+
+This wipes the existing index and re-embeds all markdown files from `../data/`. Takes ~30 seconds.
+`chroma_db/` is excluded from Git — this step is required on every fresh clone.
+
+---
+
 ## Start the Dev Server
 
 ```bash
