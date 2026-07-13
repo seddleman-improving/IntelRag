@@ -94,11 +94,13 @@ function HistorySidebar({
   history,
   activeId,
   onSelect,
+  onRemove,
   onClear,
 }: {
   history: HistoryItem[]
   activeId: string | null
   onSelect: (item: HistoryItem) => void
+  onRemove: (id: string) => void
   onClear: () => void
 }) {
   return (
@@ -123,19 +125,30 @@ function HistorySidebar({
           <p className="px-4 py-6 text-xs text-slate-400 text-center">No history yet</p>
         ) : (
           history.map(item => (
-            <button
+            <div
               key={item.id}
-              onClick={() => onSelect(item)}
               className={cn(
-                'w-full px-4 py-3 text-left border-b border-slate-100 hover:bg-slate-50 transition',
+                'group flex items-start border-b border-slate-100 hover:bg-slate-50 transition',
                 activeId === item.id && 'bg-slate-100'
               )}
             >
-              <p className="text-xs text-slate-700 line-clamp-2 leading-relaxed">{item.question}</p>
-              <p className="mt-1 text-xs text-slate-400">
-                {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </p>
-            </button>
+              <button
+                onClick={() => onSelect(item)}
+                className="flex-1 px-4 py-3 text-left"
+              >
+                <p className="text-xs text-slate-700 line-clamp-2 leading-relaxed">{item.question}</p>
+                <p className="mt-1 text-xs text-slate-400">
+                  {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </p>
+              </button>
+              <button
+                onClick={() => onRemove(item.id)}
+                title="Remove"
+                className="shrink-0 px-2 py-3 text-transparent group-hover:text-slate-400 hover:!text-red-500 transition"
+              >
+                <Trash2 size={13} />
+              </button>
+            </div>
           ))
         )}
       </div>
@@ -151,7 +164,7 @@ export default function App() {
   const [activeId, setActiveId] = useState<string | null>(null)
   const [companySlugs, setCompanySlugs] = useState<string[]>([])
   const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const { history, addItem, clearHistory } = useQueryHistory()
+  const { history, addItem, removeItem, clearHistory } = useQueryHistory()
 
   async function handleSubmit(q?: string) {
     const query = (q ?? question).trim()
@@ -217,11 +230,13 @@ export default function App() {
           history={history}
           activeId={activeId}
           onSelect={handleSelectHistory}
+          onRemove={removeItem}
           onClear={clearHistory}
         />
 
         <main className="flex-1 overflow-y-auto px-6 py-8 space-y-8">
           <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="mb-3 text-sm font-semibold text-slate-700">Ask the Intelligence Platform</h2>
             <textarea
               ref={textareaRef}
               value={question}

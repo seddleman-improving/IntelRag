@@ -42,9 +42,13 @@ export function useQueryHistory() {
     return item
   }
 
+  function removeItem(id: string) {
+    setHistory(prev => prev.filter(item => item.id !== id))
+  }
+
   function clearHistory() {
     setHistory([])
   }
 
-  return { history, addItem, clearHistory }
+  return { history, addItem, removeItem, clearHistory }
 }
