@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Intelligence Dossier — Consulting Intelligence Platform</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #080d18;
+    --surface: #0f1729;
+    --card: #141e30;
+    --border: #1e2d45;
+    --blue: #3b82f6;
+    --gold: #f59e0b;
+    --green: #10b981;
+    --purple: #8b5cf6;
+    --red: #ef4444;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --dim: #334155;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Georgia', serif;
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+
+  /* SCANLINE OVERLAY */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+    pointer-events: none;
+    z-index: 1000;
+  }
+
+  /* HEADER */
+  .header {
+    position: relative;
+    padding: 60px 40px 40px;
+    border-bottom: 1px solid var(--border);
+    overflow: hidden;
+  }
+  .header::before {
+    content: '';
+    position: absolute;
+    top: -80px; right: -80px;
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(59,130,246,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .stamp {
+    display: inline-block;
+    border: 3px solid var(--gold);
+    color: var(--gold);
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 4px;
+    padding: 4px 12px;
+    transform: rotate(-2deg);
+    opacity: 0.85;
+    margin-bottom: 24px;
+  }
+  .header h1 {
+    font-size: clamp(28px, 4vw, 48px);
+    font-weight: normal;
+    letter-spacing: -0.5px;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+  .header h1 span { color: var(--blue); }
+  .header .tagline {
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+  }
+  .meta-row {
+    display: flex;
+    gap: 32px;
+    flex-wrap: wrap;
+  }
+  .meta-item {
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .meta-item span { color: var(--blue); }
+
+  /* MAIN LAYOUT */
+  .container { max-width: 1100px; margin: 0 auto; padding: 0 40px 80px; }
+
+  /* SECTION HEADERS */
+  .section {
+    margin-top: 64px;
+  }
+  .section-label {
+    font-family: 'Courier New', monospace;
+    font-size: 10px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .section-title {
+    font-size: 22px;
+    font-weight: normal;
+    margin-bottom: 24px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .section-title .icon {
+    width: 32px; height: 32px;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  /* TECHNIQUE CARDS */
+  .technique-block {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 20px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .technique-block:hover { border-color: var(--dim); }
+  .technique-header {
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .technique-num {
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+  .technique-name {
+    font-size: 16px;
+    flex: 1;
+  }
+  .technique-tag {
+    font-family: 'Courier New', monospace;
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 3px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .technique-body { padding: 20px; }
+  .technique-body p { color: #94a3b8; font-size: 14px; margin-bottom: 12px; }
+  .technique-body p:last-child { margin-bottom: 0; }
+
+  /* DISCOVERIES */
+  .discovery {
+    background: var(--surface);
+    border-left: 3px solid var(--blue);
+    padding: 12px 16px;
+    margin: 8px 0;
+    border-radius: 0 4px 4px 0;
+    font-size: 14px;
+    color: var(--text);
+  }
+  .discovery.decision { border-left-color: var(--gold); }
+  .discovery.idea { border-left-color: var(--green); }
+  .discovery.warning { border-left-color: var(--red); }
+
+  /* HATS GRID */
+  .hats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-top: 12px;
+  }
+  @media (max-width: 600px) { .hats-grid { grid-template-columns: 1fr 1fr; } }
+  .hat-card {
+    padding: 16px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+  }
+  .hat-card .hat-icon { font-size: 24px; margin-bottom: 8px; }
+  .hat-card .hat-name { font-size: 13px; font-weight: bold; margin-bottom: 4px; }
+  .hat-card .hat-finding { font-size: 12px; color: #94a3b8; line-height: 1.5; }
+  .hat-white { background: rgba(226,232,240,0.05); }
+  .hat-red { background: rgba(239,68,68,0.05); }
+  .hat-black { background: rgba(100,116,139,0.08); }
+  .hat-yellow { background: rgba(245,158,11,0.05); }
+  .hat-green { background: rgba(16,185,129,0.05); }
+  .hat-blue { background: rgba(59,130,246,0.05); }
+
+  /* MIND MAP SVG */
+  .mindmap-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    overflow-x: auto;
+  }
+  .mindmap-wrap svg { display: block; margin: 0 auto; }
+
+  /* STACK TABLE */
+  .stack-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    margin-top: 8px;
+  }
+  .stack-table th {
+    text-align: left;
+    font-family: 'Courier New', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .stack-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  .stack-table tr:last-child td { border-bottom: none; }
+  .stack-table .layer { color: var(--muted); font-size: 12px; }
+  .stack-table .choice { color: var(--blue); font-weight: bold; }
+  .stack-table .note { color: #64748b; font-size: 12px; }
+  .stack-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+  /* TEST QUESTIONS */
+  .questions-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  @media (max-width: 700px) { .questions-grid { grid-template-columns: 1fr; } }
+  .q-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px 16px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .q-num {
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    color: var(--blue);
+    background: rgba(59,130,246,0.1);
+    padding: 2px 7px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .q-text { font-size: 13px; color: #94a3b8; }
+  .q-type {
+    font-family: 'Courier New', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 4px;
+    letter-spacing: 1px;
+  }
+
+  /* FIVE WHYS CHAIN */
+  .whys-chain {
+    position: relative;
+    padding-left: 40px;
+  }
+  .why-item {
+    position: relative;
+    margin-bottom: 0;
+  }
+  .why-item::before {
+    content: '';
+    position: absolute;
+    left: -28px;
+    top: 24px;
+    bottom: -1px;
+    width: 2px;
+    background: linear-gradient(to bottom, var(--gold), transparent);
+  }
+  .why-item:last-child::before { display: none; }
+  .why-node {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin-bottom: 8px;
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+  }
+  .why-badge {
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    color: var(--gold);
+    background: rgba(245,158,11,0.1);
+    border: 1px solid rgba(245,158,11,0.2);
+    padding: 2px 8px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .why-badge.root {
+    color: var(--red);
+    background: rgba(239,68,68,0.1);
+    border-color: rgba(239,68,68,0.3);
+  }
+  .why-text { font-size: 14px; color: var(--text); }
+  .why-arrow {
+    text-align: center;
+    color: var(--gold);
+    font-size: 18px;
+    margin: -2px 0 6px -28px;
+    opacity: 0.6;
+  }
+
+  /* SYNTHESIS */
+  .synthesis-section {
+    background: linear-gradient(135deg, rgba(59,130,246,0.06) 0%, rgba(139,92,246,0.06) 100%);
+    border: 1px solid rgba(59,130,246,0.2);
+    border-radius: 12px;
+    padding: 36px;
+    margin-top: 64px;
+    position: relative;
+    overflow: hidden;
+  }
+  .synthesis-section::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(139,92,246,0.1) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .synthesis-title {
+    font-size: 28px;
+    margin-bottom: 8px;
+    color: var(--text);
+  }
+  .synthesis-subtitle {
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 32px;
+  }
+  .connection-card {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin-bottom: 16px;
+  }
+  .connection-card:last-child { margin-bottom: 0; }
+  .connection-label {
+    font-family: 'Courier New', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--blue);
+    margin-bottom: 8px;
+  }
+  .connection-text { font-size: 15px; color: var(--text); line-height: 1.7; }
+
+  /* DECISIONS STRIP */
+  .decisions-strip {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .decision-row {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 10px 14px;
+    background: var(--surface);
+    border-radius: 5px;
+    border: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .decision-row::before {
+    content: '✓';
+    color: var(--gold);
+    font-size: 12px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  /* PRINCIPLES */
+  .principles-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+  }
+  .principle-pill {
+    background: rgba(59,130,246,0.08);
+    border: 1px solid rgba(59,130,246,0.2);
+    border-radius: 20px;
+    padding: 6px 16px;
+    font-size: 13px;
+    color: var(--blue);
+  }
+
+  /* FOOTER */
+  .footer {
+    margin-top: 80px;
+    padding: 32px 40px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: gap;
+  }
+  .footer-left { font-family: 'Courier New', monospace; font-size: 11px; color: var(--muted); letter-spacing: 1px; }
+  .footer-right { font-family: 'Courier New', monospace; font-size: 11px; color: var(--muted); letter-spacing: 1px; }
+
+  /* ANIMATIONS */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .section { animation: fadeUp 0.4s ease both; }
+  .section:nth-child(2) { animation-delay: 0.05s; }
+  .section:nth-child(3) { animation-delay: 0.1s; }
+  .section:nth-child(4) { animation-delay: 0.15s; }
+  .section:nth-child(5) { animation-delay: 0.2s; }
+  .section:nth-child(6) { animation-delay: 0.25s; }
+  .section:nth-child(7) { animation-delay: 0.3s; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="container">
+    <div class="stamp">INTELLIGENCE DOSSIER</div>
+    <h1>Consulting <span>Intelligence</span> Platform</h1>
+    <div class="tagline">RAG · React · Python · Brainstorming Session Record</div>
+    <div class="meta-row">
+      <div class="meta-item">Session dates: <span>2026-06-23 / 2026-06-25</span></div>
+      <div class="meta-item">Mode: <span>Creative Partner</span></div>
+      <div class="meta-item">Techniques: <span>5 of 5 completed</span></div>
+      <div class="meta-item">Entries logged: <span>48</span></div>
+      <div class="meta-item">Status: <span>COMPLETE</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- TECHNIQUE 1: FIRST PRINCIPLES -->
+  <div class="section">
+    <div class="section-label">Technique 01 — Creative</div>
+    <div class="section-title">
+      <div class="icon" style="background:rgba(239,68,68,0.12)">🪨</div>
+      First Principles Thinking
+    </div>
+    <div class="technique-block" style="border-left: 3px solid #ef4444;">
+      <div class="technique-body">
+        <p>Stripped every assumption to bedrock. Started with <em>"We need a RAG app"</em> — and found the real problem underneath it.</p>
+        <div class="discovery">The app isn't a budget lookup tool. It's a <strong>service-fit intelligence platform</strong>. The question isn't "how big is their budget?" — it's "which of our three services could this company buy right now?"</div>
+        <div class="discovery">IT budgets are never published directly. They must be inferred from signals: public financials, job postings, LinkedIn headcount, tech stack tools, industry benchmarks.</div>
+        <div class="discovery decision">Two jobs emerged: <strong>Discovery (breadth)</strong> — find targets; <strong>Pre-engagement Intel (depth)</strong> — know a company cold. Same data. Different lenses.</div>
+        <div class="discovery">Three service lines, three signal sets: fixed-price work (capex/tech initiatives), staff augmentation (open reqs, attrition), coaching/team leading (rapid growth, tech debt).</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TECHNIQUE 2: SIX THINKING HATS -->
+  <div class="section">
+    <div class="section-label">Technique 02 — Structured</div>
+    <div class="section-title">
+      <div class="icon" style="background:rgba(139,92,246,0.12)">🎩</div>
+      Six Thinking Hats
+    </div>
+    <div class="hats-grid">
+      <div class="hat-card hat-white">
+        <div class="hat-icon">⚪</div>
+        <div class="hat-name">White — Facts</div>
+        <div class="hat-finding">No proprietary data exists yet. IT budgets must be inferred. Core entity: Company + signals. Tech stack: RAG + React. Critical gap: data source accessibility unknown.</div>
+      </div>
+      <div class="hat-card hat-red">
+        <div class="hat-icon">🔴</div>
+        <div class="hat-name">Red — Feelings</div>
+        <div class="hat-finding">App may serve dual purpose — internal intelligence tool AND demo shown to potential clients. Risk: polished demo becomes the product, killing real data investment.</div>
+      </div>
+      <div class="hat-card hat-black">
+        <div class="hat-icon">⚫</div>
+        <div class="hat-name">Black — Risks</div>
+        <div class="hat-finding">Three domains have different freshness needs. Stale data delivered confidently is worse than no data. "If everyone likes it" is a fuzzy gate — needs a defined green light.</div>
+      </div>
+      <div class="hat-card hat-yellow">
+        <div class="hat-icon">🟡</div>
+        <div class="hat-name">Yellow — Benefits</div>
+        <div class="hat-finding">LLM/RAG tooling is mature enough for a small team to build something genuinely impressive in 4 weeks. Mock data first = prove the experience before the pipeline.</div>
+      </div>
+      <div class="hat-card hat-green">
+        <div class="hat-icon">🟢</div>
+        <div class="hat-name">Green — New Ideas</div>
+        <div class="hat-finding">"We've done this before" confidence badges. Use real public companies (Microsoft, Salesforce) for demo data. Prospect→prep workflow handoff between the two jobs.</div>
+      </div>
+      <div class="hat-card hat-blue">
+        <div class="hat-icon">🔵</div>
+        <div class="hat-name">Blue — Process</div>
+        <div class="hat-finding">RAG first. UI second. Working query→answer loop by day 3 of week 1. 10 test questions = acceptance gate. Week 4 demo ends with a specific funding ask.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TECHNIQUE 3: MIND MAP -->
+  <div class="section">
+    <div class="section-label">Technique 03 — Structured</div>
+    <div class="section-title">
+      <div class="icon" style="background:rgba(16,185,129,0.12)">🗺</div>
+      Mind Mapping
+    </div>
+    <div class="mindmap-wrap">
+      <svg width="900" height="520" viewBox="0 0 900 520" style="max-width:100%">
+        <defs>
+          <marker id="arrow" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L6,3 L0,6 Z" fill="#1e2d45"/>
+          </marker>
+        </defs>
+        <!-- Central node -->
+        <rect x="340" y="220" width="220" height="60" rx="8" fill="#1a2332" stroke="#3b82f6" stroke-width="2"/>
+        <text x="450" y="244" text-anchor="middle" fill="#3b82f6" font-size="12" font-family="Courier New">Consulting Intelligence</text>
+        <text x="450" y="263" text-anchor="middle" fill="#3b82f6" font-size="12" font-family="Courier New">Platform</text>
+
+        <!-- Branch: Knowledge Domains (left) -->
+        <line x1="340" y1="245" x2="210" y2="140" stroke="#1e2d45" stroke-width="1.5"/>
+        <rect x="80" y="110" width="130" height="40" rx="5" fill="#141e30" stroke="#10b981" stroke-width="1.5"/>
+        <text x="145" y="128" text-anchor="middle" fill="#10b981" font-size="11" font-family="Courier New">Knowledge</text>
+        <text x="145" y="143" text-anchor="middle" fill="#10b981" font-size="11" font-family="Courier New">Domains</text>
+        <!-- Sub-nodes -->
+        <line x1="80" y1="125" x2="30" y2="85" stroke="#1e2d45" stroke-width="1"/>
+        <rect x="-30" y="68" width="60" height="32" rx="4" fill="#0f1729" stroke="#1e2d45"/>
+        <text x="0" y="82" text-anchor="middle" fill="#64748b" font-size="9" font-family="Courier New">Financials</text>
+        <text x="0" y="93" text-anchor="middle" fill="#64748b" font-size="9" font-family="Courier New">+ Signals</text>
+
+        <line x1="80" y1="130" x2="30" y2="130" stroke="#1e2d45" stroke-width="1"/>
+        <rect x="-30" y="116" width="60" height="28" rx="4" fill="#0f1729" stroke="#1e2d45"/>
+        <text x="0" y="130" text-anchor="middle" fill="#64748b" font-size="9" font-family="Courier New">Industry</text>
+        <text x="0" y="141" text-anchor="middle" fill="#64748b" font-size="9" font-family="Courier New">Content</text>
+
+        <line x1="80" y1="140" x2="30" y2="170" stroke="#1e2d45" stroke-width="1"/>
+        <rect x="-30" y="158" width="60" height="28" rx="4" fill="#0f1729" stroke="#1e2d45"/>
+        <text x="0" y="172" text-anchor="middle" fill="#64748b" font-size="9" font-family="Courier New">Firm's Own</text>
+        <text x="0" y="183" text-anchor="middle" fill="#64748b" font-size="9" font-family="Courier New">Proposals</text>
+
+        <!-- Branch: Tech Stack (bottom-left) -->
+        <line x1="370" y1="280" x2="240" y2="390" stroke="#1e2d45" stroke-width="1.5"/>
+        <rect x="140" y="368" width="110" height="40" rx="5" fill="#141e30" stroke="#8b5cf6" stroke-width="1.5"/>
+        <text x="195" y="384" text-anchor="middle" fill="#8b5cf6" font-size="11" font-family="Courier New">Tech Stack</text>
+        <text x="195" y="399" text-anchor="middle" fill="#8b5cf6" font-size="11" font-family="Courier New">Confirmed</text>
+        <!-- Sub-nodes -->
+        <line x1="140" y1="385" x2="60" y2="360" stroke="#1e2d45" stroke-width="1"/>
+        <rect x="-15" y="348" width="76" height="24" rx="3" fill="#0f1729" stroke="#1e2d45"/>
+        <text x="23" y="364" text-anchor="middle" fill="#64748b" font-size="9" font-family="Courier New">Ollama + Chroma</text>
+
+        <line x1="140" y1="395" x2="60" y2="410" stroke="#1e2d45" stroke-width="1"/>
+        <rect x="-15" y="400" width="76" height="24" rx="3" fill="#0f1729" stroke="#1e2d45"/>
+        <text x="23" y="416" text-anchor="middle" fill="#64748b" font-size="9" font-family="Courier New">LangChain + FastAPI</text>
+
+        <line x1="140" y1="400" x2="60" y2="450" stroke="#1e2d45" stroke-width="1"/>
+        <rect x="-15" y="440" width="76" height="24" rx="3" fill="#0f1729" stroke="#1e2d45"/>
+        <text x="23" y="456" text-anchor="middle" fill="#64748b" font-size="9" font-family="Courier New">React + shadcn</text>
+
+        <!-- Branch: Build Phases (bottom-right) -->
+        <line x1="530" y1="280" x2="660" y2="390" stroke="#1e2d45" stroke-width="1.5"/>
+        <rect x="640" y="368" width="110" height="40" rx="5" fill="#141e30" stroke="#f59e0b" stroke-width="1.5"/>
+        <text x="695" y="384" text-anchor="middle" fill="#f59e0b" font-size="11" font-family="Courier New">Build</text>
+        <text x="695" y="399" text-anchor="middle" fill="#f59e0b" font-size="11" font-family="Courier New">Phases</text>
+        <line x1="750" y1="375" x2="820" y2="345" stroke="#1e2d45" stroke-width="1"/>
+        <rect x="820" y="330" width="80" height="30" rx="3" fill="#0f1729" stroke="#1e2d45"/>
+        <text x="860" y="348" text-anchor="middle" fill="#64748b" font-size="9" font-family="Courier New">Wk1-2: RAG</text>
+
+        <line x1="750" y1="385" x2="820" y2="385" stroke="#1e2d45" stroke-width="1"/>
+        <rect x="820" y="370" width="80" height="30" rx="3" fill="#0f1729" stroke="#1e2d45"/>
+        <text x="860" y="388" text-anchor="middle" fill="#64748b" font-size="9" font-family="Courier New">Wk3: React UI</text>
+
+        <line x1="750" y1="395" x2="820" y2="425" stroke="#1e2d45" stroke-width="1"/>
+        <rect x="820" y="412" width="80" height="30" rx="3" fill="#0f1729" stroke="#1e2d45"/>
+        <text x="860" y="430" text-anchor="middle" fill="#64748b" font-size="9" font-family="Courier New">Wk4: Polish</text>
+
+        <!-- Branch: Query Types (right) -->
+        <line x1="560" y1="245" x2="680" y2="140" stroke="#1e2d45" stroke-width="1.5"/>
+        <rect x="670" y="110" width="120" height="40" rx="5" fill="#141e30" stroke="#3b82f6" stroke-width="1.5"/>
+        <text x="730" y="128" text-anchor="middle" fill="#3b82f6" font-size="11" font-family="Courier New">Query</text>
+        <text x="730" y="143" text-anchor="middle" fill="#3b82f6" font-size="11" font-family="Courier New">Types</text>
+        <line x1="790" y1="120" x2="850" y2="80" stroke="#1e2d45" stroke-width="1"/>
+        <rect x="852" y="62" width="46" height="36" rx="3" fill="#0f1729" stroke="#1e2d45"/>
+        <text x="875" y="78" text-anchor="middle" fill="#64748b" font-size="9" font-family="Courier New">Financial</text>
+        <text x="875" y="91" text-anchor="middle" fill="#64748b" font-size="9" font-family="Courier New">Intel</text>
+
+        <line x1="790" y1="128" x2="850" y2="128" stroke="#1e2d45" stroke-width="1"/>
+        <rect x="852" y="114" width="46" height="28" rx="3" fill="#0f1729" stroke="#1e2d45"/>
+        <text x="875" y="130" text-anchor="middle" fill="#64748b" font-size="9" font-family="Courier New">Solution</text>
+        <text x="875" y="141" text-anchor="middle" fill="#64748b" font-size="9" font-family="Courier New">Research</text>
+
+        <line x1="790" y1="135" x2="850" y2="172" stroke="#1e2d45" stroke-width="1"/>
+        <rect x="852" y="160" width="46" height="28" rx="3" fill="#0f1729" stroke="#1e2d45"/>
+        <text x="875" y="174" text-anchor="middle" fill="#64748b" font-size="9" font-family="Courier New">Offer</text>
+        <text x="875" y="185" text-anchor="middle" fill="#64748b" font-size="9" font-family="Courier New">Matching</text>
+
+        <!-- Branch: Features (top-center) -->
+        <line x1="450" y1="220" x2="450" y2="110" stroke="#1e2d45" stroke-width="1.5"/>
+        <rect x="375" y="78" width="150" height="32" rx="5" fill="#141e30" stroke="#ef4444" stroke-width="1.5"/>
+        <text x="450" y="93" text-anchor="middle" fill="#ef4444" font-size="11" font-family="Courier New">Signature</text>
+        <text x="450" y="106" text-anchor="middle" fill="#ef4444" font-size="11" font-family="Courier New">Features</text>
+        <line x1="400" y1="78" x2="350" y2="45" stroke="#1e2d45" stroke-width="1"/>
+        <rect x="258" y="28" width="92" height="28" rx="3" fill="#0f1729" stroke="#1e2d45"/>
+        <text x="304" y="45" text-anchor="middle" fill="#64748b" font-size="9" font-family="Courier New">"Done this</text>
+        <text x="304" y="57" text-anchor="middle" fill="#64748b" font-size="9" font-family="Courier New">before" badges</text>
+
+        <line x1="500" y1="78" x2="548" y2="45" stroke="#1e2d45" stroke-width="1"/>
+        <rect x="550" y="28" width="92" height="28" rx="3" fill="#0f1729" stroke="#1e2d45"/>
+        <text x="596" y="44" text-anchor="middle" fill="#64748b" font-size="9" font-family="Courier New">Prospect →</text>
+        <text x="596" y="56" text-anchor="middle" fill="#64748b" font-size="9" font-family="Courier New">Prep handoff</text>
+      </svg>
+    </div>
+  </div>
+
+  <!-- TECHNIQUE 4: JTBD -->
+  <div class="section">
+    <div class="section-label">Technique 04 — Structured</div>
+    <div class="section-title">
+      <div class="icon" style="background:rgba(139,92,246,0.12)">💼</div>
+      Job to Be Done
+    </div>
+    <div class="technique-block" style="border-left: 3px solid #8b5cf6;">
+      <div class="technique-body">
+        <p>Stripped the feature list and asked: what progress is a consultant trying to make in their life when they reach for this app?</p>
+        <div class="discovery">Usage context: sitting at a desk — either planning before a known meeting, or looking for companies worth meeting. Not panicking. Planning. This is a <strong>research workspace</strong>, not a panic button.</div>
+        <div class="discovery decision"><strong>Job 1 — Prospect smarter:</strong> Empty pipeline → qualified targets. Functional: filter by budget signals. Emotional: momentum. Social: pipeline activity.</div>
+        <div class="discovery decision"><strong>Job 2 — Prep for a meeting:</strong> Uncertainty → confidence and credibility. Functional: know the company cold. Emotional: feel prepared. Social: look sharp in the room.</div>
+        <div class="discovery idea">The two jobs connect: prospect → target → "prep for first call" handoff. Implies a lightweight "my companies" saved list. The app earns loyalty by following the consultant's workflow, not interrupting it.</div>
+        <div class="discovery"><strong>Job hierarchy:</strong> Consultant (priority 1) → Prove AI capability (priority 2) → Impress demo audience (polish, not design driver)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TECHNIQUE 5: FIVE WHYS -->
+  <div class="section">
+    <div class="section-label">Technique 05 — Deep</div>
+    <div class="section-title">
+      <div class="icon" style="background:rgba(245,158,11,0.12)">🔍</div>
+      Five Whys
+    </div>
+    <div class="whys-chain">
+      <div class="why-item">
+        <div class="why-node">
+          <div class="why-badge">SYMPTOM</div>
+          <div class="why-text">Consultants don't know enough about a target company's IT and software spend before engaging them.</div>
+        </div>
+        <div class="why-arrow">↓</div>
+      </div>
+      <div class="why-item">
+        <div class="why-node">
+          <div class="why-badge">WHY 1</div>
+          <div class="why-text">Because that information isn't collected or organized anywhere accessible to them right now.</div>
+        </div>
+        <div class="why-arrow">↓</div>
+      </div>
+      <div class="why-item">
+        <div class="why-node">
+          <div class="why-badge">WHY 2</div>
+          <div class="why-text">It's not located in any one place and it hasn't been a priority until now.</div>
+        </div>
+        <div class="why-arrow">↓</div>
+      </div>
+      <div class="why-item">
+        <div class="why-node">
+          <div class="why-badge">WHY 3</div>
+          <div class="why-text">There's now bandwidth in people-time to begin working on it — priority is opportunity-driven, not crisis-driven.</div>
+        </div>
+        <div class="why-arrow">↓</div>
+      </div>
+      <div class="why-item">
+        <div class="why-node">
+          <div class="why-badge">WHY 4</div>
+          <div class="why-text">An engineer with RAG experience has available time — dual goal: build firm RAG capability AND make productive use of that bandwidth.</div>
+        </div>
+        <div class="why-arrow">↓</div>
+      </div>
+      <div class="why-item">
+        <div class="why-node">
+          <div class="why-badge root">ROOT CAUSE</div>
+          <div class="why-text"><strong>The firm must build demonstrable AI capability to stay competitive.</strong> The consulting intelligence platform is the vehicle. Becoming an AI-capable firm is the real destination.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TECH STACK -->
+  <div class="section">
+    <div class="section-label">Architecture Decision</div>
+    <div class="section-title">
+      <div class="icon" style="background:rgba(59,130,246,0.12)">⚙️</div>
+      Confirmed Tech Stack
+    </div>
+    <table class="stack-table">
+      <thead>
+        <tr>
+          <th>Layer</th>
+          <th>Choice</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="layer">LLM</td>
+          <td class="choice">Ollama (local)</td>
+          <td class="note">Runs on Apple Mac Mini via local network. Swap to OpenAI / Azure with 1 config change.</td>
+        </tr>
+        <tr>
+          <td class="layer">Embeddings</td>
+          <td class="choice">nomic-embed-text</td>
+          <td class="note">Via Ollama, fully local and free.</td>
+        </tr>
+        <tr>
+          <td class="layer">Vector DB</td>
+          <td class="choice">Chroma</td>
+          <td class="note">In-process, persists to local disk. Zero infrastructure to stand up.</td>
+        </tr>
+        <tr>
+          <td class="layer">RAG Framework</td>
+          <td class="choice">LangChain</td>
+          <td class="note">Provider-agnostic abstraction layer. Ollama today, any LLM tomorrow.</td>
+        </tr>
+        <tr>
+          <td class="layer">Backend</td>
+          <td class="choice">Python + FastAPI</td>
+          <td class="note">REST API. React calls same endpoints forever. Clean integration surface for future systems.</td>
+        </tr>
+        <tr>
+          <td class="layer">Frontend</td>
+          <td class="choice">React + shadcn/ui</td>
+          <td class="note">Talks only to FastAPI. Never knows what LLM is running behind it.</td>
+        </tr>
+      </tbody>
+    </table>
+    <div style="margin-top:12px; padding:12px 16px; background:rgba(245,158,11,0.05); border:1px solid rgba(245,158,11,0.15); border-radius:6px; font-size:13px; color:#94a3b8;">
+      <strong style="color:#f59e0b">DEV STEP 1:</strong> Install Ollama on Apple Mac Mini → <code style="color:#e2e8f0; background:#0f1729; padding:2px 6px; border-radius:3px;">OLLAMA_HOST=0.0.0.0 ollama serve</code> → verify laptop can reach port 11434 before writing any app code.
+    </div>
+  </div>
+
+  <!-- 10 TEST QUESTIONS -->
+  <div class="section">
+    <div class="section-label">Week 2 Acceptance Gate</div>
+    <div class="section-title">
+      <div class="icon" style="background:rgba(16,185,129,0.12)">✅</div>
+      10 Test Questions
+    </div>
+    <p style="color:#64748b; font-size:13px; margin-bottom:16px;">RAG must answer all 10 with good, mostly-repeatable responses before UI work begins.</p>
+    <div class="questions-grid">
+      <div class="q-card">
+        <div class="q-num">Q01</div>
+        <div><div class="q-text">How much does [Company X] make annually and what do they spend on IT?</div><div class="q-type">FINANCIAL INTEL · DEPTH</div></div>
+      </div>
+      <div class="q-card">
+        <div class="q-num">Q02</div>
+        <div><div class="q-text">Break down [Company X]'s estimated software development spend.</div><div class="q-type">FINANCIAL INTEL · DEPTH</div></div>
+      </div>
+      <div class="q-card">
+        <div class="q-num">Q03</div>
+        <div><div class="q-text">How has [Company X]'s IT investment changed over the last 3 years?</div><div class="q-type">FINANCIAL INTEL · TREND</div></div>
+      </div>
+      <div class="q-card">
+        <div class="q-num">Q04</div>
+        <div><div class="q-text">Which companies in [industry] have the largest IT budgets?</div><div class="q-type">DISCOVERY · BREADTH</div></div>
+      </div>
+      <div class="q-card">
+        <div class="q-num">Q05</div>
+        <div><div class="q-text">Find me companies similar to [Company X] that we don't currently work with.</div><div class="q-type">DISCOVERY · BREADTH</div></div>
+      </div>
+      <div class="q-card">
+        <div class="q-num">Q06</div>
+        <div><div class="q-text">What solutions have companies like [X] used to solve [Y problem]?</div><div class="q-type">SOLUTION RESEARCH</div></div>
+      </div>
+      <div class="q-card">
+        <div class="q-num">Q07</div>
+        <div><div class="q-text">What tech initiatives is [Company X] currently investing in?</div><div class="q-type">SOLUTION RESEARCH · DEPTH</div></div>
+      </div>
+      <div class="q-card">
+        <div class="q-num">Q08</div>
+        <div><div class="q-text">Company Y is struggling with [pain point] — what can we offer to get a foot in the door?</div><div class="q-type">OFFER MATCHING</div></div>
+      </div>
+      <div class="q-card">
+        <div class="q-num">Q09</div>
+        <div><div class="q-text">What service of ours best fits a company that is rapidly growing its dev team?</div><div class="q-type">OFFER MATCHING</div></div>
+      </div>
+      <div class="q-card">
+        <div class="q-num">Q10</div>
+        <div><div class="q-text">Have we worked on anything similar to what [Company X] needs?</div><div class="q-type">"WE'VE DONE THIS BEFORE"</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- KEY DECISIONS -->
+  <div class="section">
+    <div class="section-label">Session Record</div>
+    <div class="section-title">
+      <div class="icon" style="background:rgba(245,158,11,0.12)">📋</div>
+      Key Decisions
+    </div>
+    <div class="decisions-strip">
+      <div class="decision-row">Build with mock/synthetic data for all 3 knowledge domains in v1 — real data pipeline deferred until demo proves value</div>
+      <div class="decision-row">RAG backend first — prove intelligence before building UI. Working query→answer loop is the priority.</div>
+      <div class="decision-row">4-week target: polished demo with full mock-data walkthrough. Demo ends with explicit funding ask for real data pipeline.</div>
+      <div class="decision-row">Person/stakeholder profiles descoped from v1 — deferred to future release.</div>
+      <div class="decision-row">Standalone, API-first architecture — no external system dependencies in v1; clean REST surface for future integration.</div>
+      <div class="decision-row">Stretch goal: real public company data (Microsoft, Salesforce) by week 4 — else first priority post-demo.</div>
+    </div>
+  </div>
+
+  <!-- GUIDING PRINCIPLES -->
+  <div class="section">
+    <div class="section-label">Principles</div>
+    <div class="section-title">
+      <div class="icon" style="background:rgba(59,130,246,0.12)">🧭</div>
+      Guiding Principles
+    </div>
+    <div class="principles-row">
+      <div class="principle-pill">Form follows function</div>
+      <div class="principle-pill">API-first, standalone</div>
+      <div class="principle-pill">LLM-agnostic</div>
+      <div class="principle-pill">Mock data as strength</div>
+      <div class="principle-pill">Prove value before polish</div>
+    </div>
+  </div>
+
+  <!-- SYNTHESIS CLIMAX -->
+  <div class="synthesis-section">
+    <div class="synthesis-title">The Three Hidden Connections</div>
+    <div class="synthesis-subtitle">What the techniques revealed that wasn't said out loud</div>
+
+    <div class="connection-card">
+      <div class="connection-label">Connection 01 — The Root and the Demo Are the Same Argument</div>
+      <div class="connection-text">
+        The Five Whys revealed the real goal: <em>build AI credibility for the firm to stay competitive.</em> The "We've done this before" feature, built with AI tools in 4 weeks, is that proof — not a side effect of it. The app and the capability story are the same thing. Every architecture choice, every week of velocity, every clean API is part of the argument.
+      </div>
+    </div>
+
+    <div class="connection-card">
+      <div class="connection-label">Connection 02 — Fake Data Is the Secret Weapon</div>
+      <div class="connection-text">
+        Mock data looks like a limitation. It's actually full control. Because you control every company profile, every demo answer is crafted to perfectly answer all 10 test questions. Real data at week 4 would be messier, less predictable, and harder to demo. The polished mock-data demo will be more impressive than a real-data version — and real data becomes a feature flag, not a prerequisite.
+      </div>
+    </div>
+
+    <div class="connection-card">
+      <div class="connection-label">Connection 03 — The Standalone Constraint Solves the Integration Problem</div>
+      <div class="connection-text">
+        "No external dependencies for v1" felt like a simplification for speed. But API-first standalone architecture <em>is</em> the correct design for a system that will eventually plug into something else. The constraint didn't compromise the architecture — it produced it. When integration day comes, the other system calls the same FastAPI endpoints the React UI already uses.
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <div class="footer-left">CONSULTING INTELLIGENCE PLATFORM · BRAINSTORM SESSION · 2026-06-23/25</div>
+  <div class="footer-right">CREATIVE PARTNER MODE · 5 TECHNIQUES · 48 ENTRIES LOGGED</div>
+</div>
+
+</body>
+</html>
