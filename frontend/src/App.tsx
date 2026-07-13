@@ -1,8 +1,10 @@
 import { useState, useRef } from 'react'
 import ReactMarkdown from 'react-markdown'
-import { Search, Loader2, FileText, Building2, BookOpen, Briefcase } from 'lucide-react'
+import { Search, Loader2, FileText, Building2, BookOpen, Briefcase, Clock, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { queryApi, type QueryResponse, type SourceDoc } from '@/types/api'
+import { useQueryHistory, type HistoryItem } from '@/hooks/useQueryHistory'
+import { CompanyPanel } from '@/components/CompanyPanel'
 
 const DOMAIN_META: Record<string, { label: string; color: string; Icon: React.ElementType }> = {
   'company-profile': { label: 'Company', color: 'bg-blue-100 text-blue-800', Icon: Building2 },
@@ -88,12 +90,68 @@ function AnswerPanel({ response }: { response: QueryResponse }) {
   )
 }
 
+function HistorySidebar({
+  history,
+  activeId,
+  onSelect,
+  onClear,
+}: {
+  history: HistoryItem[]
+  activeId: string | null
+  onSelect: (item: HistoryItem) => void
+  onClear: () => void
+}) {
+  return (
+    <aside className="flex w-96 shrink-0 flex-col border-r border-slate-200 bg-white">
+      <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+        <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-400">
+          <Clock size={12} />
+          History
+        </span>
+        {history.length > 0 && (
+          <button
+            onClick={onClear}
+            title="Clear history"
+            className="text-slate-400 hover:text-red-500 transition"
+          >
+            <Trash2 size={13} />
+          </button>
+        )}
+      </div>
+      <div className="flex-1 overflow-y-auto">
+        {history.length === 0 ? (
+          <p className="px-4 py-6 text-xs text-slate-400 text-center">No history yet</p>
+        ) : (
+          history.map(item => (
+            <button
+              key={item.id}
+              onClick={() => onSelect(item)}
+              className={cn(
+                'w-full px-4 py-3 text-left border-b border-slate-100 hover:bg-slate-50 transition',
+                activeId === item.id && 'bg-slate-100'
+              )}
+            >
+              <p className="text-xs text-slate-700 line-clamp-2 leading-relaxed">{item.question}</p>
+              <p className="mt-1 text-xs text-slate-400">
+                {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </p>
+            </button>
+          ))
+        )}
+      </div>
+    </aside>
+  )
+}
+
 export default function App() {
   const [question, setQuestion] = useState('')
   const [loading, setLoading] = useState(false)
   const [response, setResponse] = useState<QueryResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [activeId, setActiveId] = useState<string | null>(null)
+  const [companySlugs, setCompanySlugs] = useState<string[]>([])
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const { history, addItem, clearHistory } = useQueryHistory()
 
   async function handleSubmit(q?: string) {
     const query = (q ?? question).trim()
@@ -102,14 +160,36 @@ export default function App() {
     setLoading(true)
     setError(null)
     setResponse(null)
+    setActiveId(null)
     try {
       const data = await queryApi(query)
       setResponse(data)
+      const item = addItem(query, data)
+      setActiveId(item.id)
+      const slugs = [...new Set(
+        data.sources
+          .filter(s => s.domain === 'company-profile')
+          .map(s => s.filename.replace(/\.md$/, ''))
+      )]
+      setCompanySlugs(slugs)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong')
     } finally {
       setLoading(false)
     }
+  }
+
+  function handleSelectHistory(item: HistoryItem) {
+    setQuestion(item.question)
+    setResponse(item.response)
+    setError(null)
+    setActiveId(item.id)
+    const slugs = [...new Set(
+      item.response.sources
+        .filter(s => s.domain === 'company-profile')
+        .map(s => s.filename.replace(/\.md$/, ''))
+    )]
+    setCompanySlugs(slugs)
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
@@ -119,9 +199,9 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="border-b border-slate-200 bg-white px-6 py-4">
-        <div className="mx-auto max-w-4xl flex items-center gap-3">
+    <div className="flex h-screen flex-col bg-slate-50">
+      <header className="shrink-0 border-b border-slate-200 bg-white px-6 py-4">
+        <div className="flex items-center gap-3">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900">
             <Search size={16} className="text-white" />
           </div>
@@ -132,64 +212,75 @@ export default function App() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-4xl px-6 py-8 space-y-8">
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          <textarea
-            ref={textareaRef}
-            value={question}
-            onChange={e => setQuestion(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Ask anything about our prospects, past engagements, or industry trends..."
-            rows={3}
-            className="w-full resize-none rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-400 focus:bg-white focus:outline-none transition"
-          />
-          <div className="mt-3 flex items-center justify-between">
-            <span className="text-xs text-slate-400">Ctrl+Enter to submit</span>
-            <button
-              onClick={() => handleSubmit()}
-              disabled={!question.trim() || loading}
-              className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
-            >
-              {loading ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
-              {loading ? 'Thinking…' : 'Ask'}
-            </button>
-          </div>
-        </div>
+      <div className="flex flex-1 overflow-hidden">
+        <HistorySidebar
+          history={history}
+          activeId={activeId}
+          onSelect={handleSelectHistory}
+          onClear={clearHistory}
+        />
 
-        {!response && !loading && !error && (
-          <div>
-            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">Try an example</p>
-            <div className="grid gap-2 sm:grid-cols-2">
-              {EXAMPLE_QUESTIONS.map(q => (
-                <button
-                  key={q}
-                  onClick={() => handleSubmit(q)}
-                  className="rounded-lg border border-slate-200 bg-white px-4 py-3 text-left text-sm text-slate-600 hover:border-slate-400 hover:text-slate-900 transition"
-                >
-                  {q}
-                </button>
-              ))}
+        <main className="flex-1 overflow-y-auto px-6 py-8 space-y-8">
+          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <textarea
+              ref={textareaRef}
+              value={question}
+              onChange={e => setQuestion(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Ask anything about our prospects, past engagements, or industry trends..."
+              rows={3}
+              className="w-full resize-none rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-400 focus:bg-white focus:outline-none transition"
+            />
+            <div className="mt-3 flex items-center justify-between">
+              <span className="text-xs text-slate-400">Ctrl+Enter to submit</span>
+              <button
+                onClick={() => handleSubmit()}
+                disabled={!question.trim() || loading}
+                className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
+              >
+                {loading ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
+                {loading ? 'Thinking…' : 'Ask'}
+              </button>
             </div>
           </div>
-        )}
 
-        {loading && (
-          <div className="flex items-center justify-center gap-3 py-16 text-slate-400">
-            <Loader2 size={20} className="animate-spin" />
-            <span className="text-sm">
-              Querying <span className="font-mono text-slate-600">qwen2.5:32b</span>…
-            </span>
-          </div>
-        )}
+          {!response && !loading && !error && (
+            <div>
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">Try an example</p>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {EXAMPLE_QUESTIONS.map(q => (
+                  <button
+                    key={q}
+                    onClick={() => handleSubmit(q)}
+                    className="rounded-lg border border-slate-200 bg-white px-4 py-3 text-left text-sm text-slate-600 hover:border-slate-400 hover:text-slate-900 transition"
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
-        {error && (
-          <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-            {error}
-          </div>
-        )}
+          {loading && (
+            <div className="flex items-center justify-center gap-3 py-16 text-slate-400">
+              <Loader2 size={20} className="animate-spin" />
+              <span className="text-sm">
+                Querying <span className="font-mono text-slate-600">qwen2.5:32b</span>…
+              </span>
+            </div>
+          )}
 
-        {response && <AnswerPanel response={response} />}
-      </main>
+          {error && (
+            <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+              {error}
+            </div>
+          )}
+
+          {response && <AnswerPanel response={response} />}
+        </main>
+
+        <CompanyPanel slugs={companySlugs} />
+      </div>
     </div>
   )
 }
