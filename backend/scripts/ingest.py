@@ -63,6 +63,16 @@ def build_vector_store(chunks):
         model=settings.ollama_embed_model,
         base_url=settings.ollama_base_url,
     )
+
+    # Delete existing collection to avoid duplicate chunks on re-ingestion
+    existing = Chroma(
+        persist_directory=settings.chroma_persist_dir,
+        embedding_function=embeddings,
+        collection_name="intelrag",
+    )
+    existing.delete_collection()
+    print("Cleared existing collection")
+
     vector_store = Chroma.from_documents(
         documents=chunks,
         embedding=embeddings,

@@ -8,7 +8,12 @@ from app.core.config import settings
 
 PROMPT_TEMPLATE = """You are an intelligent consulting assistant for a software consulting firm.
 Use the context below to answer the question accurately and concisely.
-If the context does not contain enough information, say so clearly — do not invent facts.
+
+Guidelines:
+- When asked to find "similar" companies, consider similarity by IT maturity, pain points, company size, and spending patterns — not just industry.
+- When asked about prospects, only suggest companies marked as prospects (not current clients).
+- If the context does not contain enough information to fully answer, say so clearly and share what you do know — do not invent facts.
+- Always ground your answer in the provided context.
 
 Context:
 {context}
@@ -36,8 +41,8 @@ def get_vector_store():
 def build_rag_chain():
     vector_store = get_vector_store()
     retriever = vector_store.as_retriever(
-        search_type="similarity",
-        search_kwargs={"k": 5},
+        search_type="mmr",
+        search_kwargs={"k": 6, "fetch_k": 20},
     )
 
     llm = OllamaLLM(
@@ -49,7 +54,12 @@ def build_rag_chain():
     prompt = PromptTemplate.from_template(PROMPT_TEMPLATE)
 
     def format_docs(docs):
-        return "\n\n---\n\n".join(doc.page_content for doc in docs)
+        parts = []
+        for doc in docs:
+            source = doc.metadata.get("filename", "unknown")
+            domain = doc.metadata.get("domain", "")
+            parts.append(f"[Source: {source} | {domain}]\n{doc.page_content}")
+        return "\n\n---\n\n".join(parts)
 
     chain = (
         {"context": retriever | format_docs, "question": RunnablePassthrough()}
