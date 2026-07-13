@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from app.api.query import router as query_router
 
 app = FastAPI(
     title="Consulting Intelligence Platform",
@@ -14,6 +15,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+app.include_router(query_router, prefix="/api/v1", tags=["query"])
 
 
 @app.get("/health")
