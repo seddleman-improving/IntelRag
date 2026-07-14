@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils'
 import { queryApi, type QueryResponse, type SourceDoc } from '@/types/api'
 import { useQueryHistory, type HistoryItem } from '@/hooks/useQueryHistory'
 import { CompanyPanel } from '@/components/CompanyPanel'
+import { useHealthStatus } from '@/hooks/useHealthStatus'
 
 const DOMAIN_META: Record<string, { label: string; color: string; Icon: React.ElementType }> = {
   'company-profile': { label: 'Company', color: 'bg-blue-100 text-blue-800', Icon: Building2 },
@@ -165,6 +166,7 @@ export default function App() {
   const [companySlugs, setCompanySlugs] = useState<string[]>([])
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const { history, addItem, removeItem, clearHistory } = useQueryHistory()
+  const llmStatus = useHealthStatus()
 
   async function handleSubmit(q?: string) {
     const query = (q ?? question).trim()
@@ -221,6 +223,21 @@ export default function App() {
           <div>
             <h1 className="text-base font-semibold text-slate-900 leading-none">Improving Intel RAG</h1>
             <p className="text-xs text-slate-500 mt-0.5">Consulting Intelligence Platform</p>
+          </div>
+          <div className="ml-auto flex items-center gap-1.5">
+            <span className={cn(
+              'h-2 w-2 rounded-full',
+              llmStatus === 'ok' && 'bg-emerald-500',
+              llmStatus === 'checking' && 'bg-slate-300 animate-pulse',
+              llmStatus === 'degraded' && 'bg-amber-400',
+              llmStatus === 'unreachable' && 'bg-red-500',
+            )} />
+            <span className="text-xs text-slate-400">
+              {llmStatus === 'ok' && 'Backend · LLM connected'}
+              {llmStatus === 'checking' && 'Checking…'}
+              {llmStatus === 'degraded' && 'LLM unreachable'}
+              {llmStatus === 'unreachable' && 'Backend unreachable'}
+            </span>
           </div>
         </div>
       </header>
