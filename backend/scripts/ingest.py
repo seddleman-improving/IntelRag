@@ -58,10 +58,10 @@ def chunk_documents(docs):
 
 
 def build_vector_store(chunks):
-    print(f"Embedding with {settings.ollama_embed_model} via {settings.ollama_base_url}")
+    print(f"Embedding with {settings.embed_model} via {settings.llm_base_url}")
     embeddings = OllamaEmbeddings(
-        model=settings.ollama_embed_model,
-        base_url=settings.ollama_base_url,
+        model=settings.embed_model,
+        base_url=settings.llm_base_url,
     )
 
     # Delete existing collection to avoid duplicate chunks on re-ingestion

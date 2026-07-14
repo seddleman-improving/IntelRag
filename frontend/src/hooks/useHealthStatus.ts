@@ -7,7 +7,7 @@ export function useHealthStatus(intervalMs = 30_000) {
 
   async function check() {
     try {
-      const res = await fetch('/api/v1/health', { signal: AbortSignal.timeout(4000) })
+      const res = await fetch('/api/v1/health', { signal: AbortSignal.timeout(8000) })
       if (!res.ok) { setStatus('degraded'); return }
       const data = await res.json()
       setStatus(data.llm === 'ok' ? 'ok' : 'degraded')

@@ -1,8 +1,23 @@
 # Consulting Intelligence Platform
 
-A RAG-based internal tool for a software consulting firm. Enables consultants to prospect for companies with large IT/software development budgets and prepare intelligently for client engagements.
+A RAG-based internal tool for a software consulting firm. Enables consultants to query company intelligence, prospect for clients, and prepare for engagements using a conversational AI interface.
 
-Built with: Python · FastAPI · LangChain · Chroma · Ollama · React · shadcn/ui
+Built with: Python · FastAPI · LangChain · Chroma · React · shadcn/ui · Tailwind CSS
+
+> **Prototype docs:** See [`docs/prototype-setup.md`](docs/prototype-setup.md) for the specific Ollama + Mac Mini configuration used in v1.
+
+---
+
+## How It Works
+
+The platform uses a **Retrieval-Augmented Generation (RAG)** pipeline:
+
+1. Company profiles, industry content, and engagement history are stored as markdown files in `/data`
+2. On ingestion, documents are chunked, embedded, and stored in a local Chroma vector database
+3. When a user asks a question, the backend retrieves the most relevant chunks and passes them to an LLM
+4. The LLM generates a grounded answer — no hallucinated facts outside the provided context
+
+The LLM backend is **configurable** via environment variables. The prototype uses Ollama running locally, but the architecture supports any OpenAI-compatible API (Azure OpenAI, OpenAI, etc.).
 
 ---
 
@@ -12,8 +27,6 @@ Built with: Python · FastAPI · LangChain · Chroma · Ollama · React · shadc
 
 This project uses **[UV](https://docs.astral.sh/uv/)** for all Python version and package management. Do not use `pip`, `virtualenv`, or `python -m venv` directly.
 
-Install UV (if not already installed):
-
 ```bash
 # macOS / Linux
 curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -22,121 +35,126 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
 ```
 
-Verify:
-
-```bash
-uv --version
-```
+Verify: `uv --version`
 
 ### Node.js
 
-Required for the React frontend. Install via [nodejs.org](https://nodejs.org) (LTS version).
+Required for the React frontend. Install the LTS version from [nodejs.org](https://nodejs.org).
 
-### Ollama (inference server)
+### LLM Inference Server
 
-The RAG backend uses **[Ollama](https://ollama.com)** to run LLMs locally. Ollama runs on a dedicated Apple Mac Mini on the local network — it does not need to be installed on the development machine.
-
-See **Mac Mini Setup** below.
+The backend requires access to an LLM server that exposes an API compatible with the configured provider. Set the connection details in `backend/.env` (see below). For the current prototype setup using Ollama, see [`docs/prototype-setup.md`](docs/prototype-setup.md).
 
 ---
 
-## Mac Mini Setup (Ollama Inference Server)
+## Setup
 
-These steps are run **once** on the Apple Mac Mini — not on the development laptop.
-
-1. Install Ollama from [ollama.com](https://ollama.com)
-
-2. Pull the required models:
-   ```bash
-   ollama pull llama3.1
-   ollama pull nomic-embed-text
-   ```
-
-3. Expose Ollama on the local network (add to `~/.zshrc` for persistence):
-   ```bash
-   export OLLAMA_HOST=0.0.0.0
-   ```
-
-4. Restart Ollama (or reboot). Verify it is reachable from the dev laptop:
-   ```bash
-   curl http://<mac-mini-ip>:11434/api/tags
-   ```
-   You should see a JSON list of pulled models.
-
-5. **Recommended:** Assign a static local IP to the Mac Mini in your router settings so the address never changes.
-
----
-
-## Environment Setup
-
-Copy `.env.example` to `.env` in the `/backend` folder and fill in your values:
+### 1. Backend
 
 ```bash
-cp backend/.env.example backend/.env
-```
-
-Required variables:
-
-```
-OLLAMA_BASE_URL=http://192.168.x.x:11434
-OLLAMA_MODEL=llama3.1
-OLLAMA_EMBED_MODEL=nomic-embed-text
-```
-
----
-
-## Running the Backend
-
-```bash
-cd backend
+# From /backend
 uv sync
+cp .env.example .env   # then edit .env with your LLM settings
+```
+
+**Required environment variables** (the backend will not start without them):
+
+| Variable | Description |
+|---|---|
+| `LLM_BASE_URL` | Base URL of the LLM server |
+| `LLM_MODEL` | Model name for answering queries |
+| `EMBED_MODEL` | Model name for generating embeddings |
+
+Optional:
+
+| Variable | Default | Description |
+|---|---|---|
+| `CHROMA_PERSIST_DIR` | `./chroma_db` | Path to the Chroma vector database |
+
+### 2. Build the Vector Index
+
+Required on first clone and after any changes to files in `/data`:
+
+```bash
+# From /backend
+uv run python scripts/ingest.py
+```
+
+> `chroma_db/` is excluded from Git — this step is required on every fresh clone.
+
+### 3. Frontend
+
+```bash
+# From /frontend
+npm install
+```
+
+---
+
+## Running the Application
+
+**Backend** (from `/backend`):
+```bash
 uv run uvicorn app.main:app --reload
 ```
+Runs at `http://localhost:8000`. Stop with `Ctrl+C`.
 
----
-
-## Running the Frontend
-
+**Frontend** (from `/frontend`):
 ```bash
-cd frontend
-npm install
 npm run dev
 ```
+Runs at `http://localhost:5173`.
+
+### Verify the backend is healthy
+
+```powershell
+curl.exe -s http://localhost:8000/api/v1/health
+```
+
+Expected: `{"backend":"ok","llm":"ok"}`
 
 ---
 
 ## Project Structure
 
 ```
-/backend              — FastAPI + LangChain + Chroma (UV-managed Python project)
-  /app              — FastAPI application code
-  /scripts          — data loading and embedding scripts (shares backend .venv)
-  pyproject.toml    — backend Python dependencies (UV)
-  .env.example      — environment variable template
-/frontend             — React + shadcn/ui + Tailwind (Vite + TypeScript)
-/data                 — raw mock data files (JSON / markdown)
-README.md
-project-context.md    — BMad agent persistent context
-```
+/backend                  — FastAPI + LangChain + Chroma (UV-managed)
+  /app
+    main.py               — FastAPI entry point, health check endpoint
+    /core
+      config.py           — Settings loaded from .env
+      rag.py              — RAG chain: retriever + LLM + prompt
+    /api
+      query.py            — POST /api/v1/query
+      companies.py        — GET /api/v1/companies[/{slug}]
+  /scripts
+    ingest.py             — Chunk, embed, and store data in Chroma
+  .env.example            — Environment variable template
+  pyproject.toml          — Python dependencies (UV)
 
-**Python environments:**
-- Root `.venv` — BMad planning tooling only (`_bmad/scripts/`)
-- `backend/.venv` — all application Python code (FastAPI, LangChain, Chroma, data scripts)
+/frontend                 — React + TypeScript + Vite
+  /src
+    App.tsx               — Main UI (query input, history, company panel)
+    /components           — CompanyPanel, etc.
+    /hooks                — useHealthStatus, useQueryHistory
+    /types/api.ts         — Typed API fetch wrappers
+
+/data                     — Source knowledge base (markdown files)
+  /companies              — Company profiles
+  /industry               — Industry content
+  /proposals              — Past engagement summaries
+
+/docs                     — Additional documentation
+  prototype-setup.md      — Ollama + Mac Mini prototype configuration
+```
 
 ---
 
 ## What Gets Committed to Git
 
-The following are **excluded** from version control (see `.gitignore`):
+The following are **excluded** from version control:
 
-- `backend/.env` — environment variables (API keys, IP addresses)
-- `backend/chroma_db/` — vector database (generated from data, not source code)
-- `backend/.venv/` — UV-managed backend virtual environment
-- `.venv/` — root UV environment (BMad tooling only)
+- `backend/.env` — your local environment variables
+- `backend/chroma_db/` — generated vector database (rebuild with `ingest.py`)
+- `backend/.venv/` and `.venv/` — UV-managed virtual environments
 - `frontend/node_modules/`
-
----
-
-## Development Status
-
-This project is in early development. See `_bmad-output/brainstorming/` for the full session notes, intent doc, and task list from the initial planning brainstorm.

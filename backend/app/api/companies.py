@@ -21,9 +21,14 @@ class CompanyProfile(BaseModel):
     name: str
     industry: str
     headquarters: str
+    city: str
+    state: str
     employees: str
     status: str
+    revenue: str
     it_budget: str
+    tech_stack: list[str]
+    current_initiatives: list[str]
     pain_points: list[str]
     service_fit: list[ServiceFitRow]
     current_engagement: str
@@ -77,26 +82,64 @@ def _parse_company_file(path: Path) -> CompanyProfile:
                     rationale=parts[2] if len(parts) > 2 else "",
                 ))
 
+    # City / state — split from Headquarters "City, State"
+    hq = meta.get("Headquarters", "")
+    hq_parts = [p.strip() for p in hq.split(",", 1)]
+    city = hq_parts[0] if hq_parts else ""
+    state = hq_parts[1] if len(hq_parts) > 1 else ""
+
+    # Revenue — first $ amount from Financial Overview
+    fin_text = sections.get("Financial Overview", "")
+    revenue = ""
+    m = re.search(r"annual revenue[^$]*?(\$[\d.,]+ million)", fin_text, re.IGNORECASE)
+    if not m:
+        m = re.search(r"revenue[^$]*?(\$[\d.,]+ million)", fin_text, re.IGNORECASE)
+    if m:
+        revenue = m.group(1)
+
     # IT budget — grab first $ amount from Financial Overview
     it_budget = ""
-    fin_text = sections.get("Financial Overview", "")
     m = re.search(r"IT s\w+ (?:is )?estimated at[^.]*?(\$[\d.,]+ million)", fin_text, re.IGNORECASE)
     if not m:
-        m = re.search(r"(\$[\d.,]+ million).*?software development", fin_text, re.IGNORECASE)
+        m = re.search(r"total IT budget[^$]*?(\$[\d.,]+ million)", fin_text, re.IGNORECASE)
     if m:
         it_budget = m.group(1)
 
-    # Current engagement section (only Stratford-type clients have it)
+    # Tech stack — bold key from Technology Stack bullets (**Key:** value)
+    tech_stack: list[str] = []
+    for line in sections.get("Technology Stack", "").splitlines():
+        stripped = line.strip()
+        if stripped.startswith("- "):
+            label_match = re.match(r"-\s+\*\*(.+?):\*\*\s*(.*)", stripped)
+            if label_match:
+                tech_stack.append(f"{label_match.group(1)}: {label_match.group(2).split('—')[0].strip()}")
+            else:
+                tech_stack.append(stripped[2:])
+
+    # Current initiatives — numbered list items
+    current_initiatives: list[str] = []
+    for line in sections.get("Current Tech Initiatives", "").splitlines():
+        stripped = line.strip()
+        m2 = re.match(r"\d+\.\s+\*\*(.+?)\*\*", stripped)
+        if m2:
+            current_initiatives.append(m2.group(1))
+
+    # Current engagement section (only current clients have it)
     current_engagement = sections.get("Current Engagement", "").strip()
 
     return CompanyProfile(
         slug=path.stem,
         name=name,
         industry=meta.get("Industry", ""),
-        headquarters=meta.get("Headquarters", ""),
+        headquarters=hq,
+        city=city,
+        state=state,
         employees=meta.get("Employees", ""),
         status=meta.get("Status", ""),
+        revenue=revenue,
         it_budget=it_budget,
+        tech_stack=tech_stack,
+        current_initiatives=current_initiatives,
         pain_points=pain_points[:5],
         service_fit=service_fit,
         current_engagement=current_engagement,

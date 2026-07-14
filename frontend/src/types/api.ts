@@ -9,9 +9,14 @@ export interface CompanyProfile {
   name: string
   industry: string
   headquarters: string
+  city: string
+  state: string
   employees: string
   status: string
+  revenue: string
   it_budget: string
+  tech_stack: string[]
+  current_initiatives: string[]
   pain_points: string[]
   service_fit: ServiceFitRow[]
   current_engagement: string
@@ -20,6 +25,12 @@ export interface CompanyProfile {
 export async function fetchCompany(slug: string): Promise<CompanyProfile> {
   const res = await fetch(`/api/v1/companies/${slug}`)
   if (!res.ok) throw new Error(`Company not found: ${slug}`)
+  return res.json()
+}
+
+export async function fetchAllCompanies(): Promise<CompanyProfile[]> {
+  const res = await fetch('/api/v1/companies')
+  if (!res.ok) throw new Error('Failed to fetch companies')
   return res.json()
 }
 

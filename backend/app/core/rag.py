@@ -14,6 +14,7 @@ Guidelines:
 - When asked about prospects, only suggest companies marked as prospects (not current clients).
 - If the context does not contain enough information to fully answer, say so clearly and share what you do know — do not invent facts.
 - Always ground your answer in the provided context.
+- When asked to list or enumerate all items (e.g. all companies, all services), note that the context provided may not be exhaustive — only items explicitly present in the context should be listed.
 
 Context:
 {context}
@@ -25,8 +26,8 @@ Answer:"""
 
 def get_embeddings():
     return OllamaEmbeddings(
-        model=settings.ollama_embed_model,
-        base_url=settings.ollama_base_url,
+        model=settings.embed_model,
+        base_url=settings.llm_base_url,
     )
 
 
@@ -42,12 +43,12 @@ def build_rag_chain():
     vector_store = get_vector_store()
     retriever = vector_store.as_retriever(
         search_type="mmr",
-        search_kwargs={"k": 6, "fetch_k": 20},
+        search_kwargs={"k": 12, "fetch_k": 40},
     )
 
     llm = OllamaLLM(
-        model=settings.ollama_model,
-        base_url=settings.ollama_base_url,
+        model=settings.llm_model,
+        base_url=settings.llm_base_url,
         temperature=0.1,
     )
 

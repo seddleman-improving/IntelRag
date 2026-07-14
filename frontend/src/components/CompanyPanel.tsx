@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Building2, MapPin, Users, DollarSign, AlertCircle, Briefcase, CheckCircle2 } from 'lucide-react'
+import { Building2, MapPin, Users, DollarSign, AlertCircle, Briefcase, CheckCircle2, TrendingUp, Cpu, Zap } from 'lucide-react'
 import { fetchCompany, type CompanyProfile } from '@/types/api'
 import { cn } from '@/lib/utils'
 
@@ -39,16 +39,22 @@ function CompanyCard({ profile }: { profile: CompanyProfile }) {
             {profile.industry}
           </div>
         )}
-        {profile.headquarters && (
+        {(profile.city || profile.state) && (
           <div className="flex items-center gap-2">
             <MapPin size={12} className="shrink-0 text-slate-400" />
-            {profile.headquarters}
+            {[profile.city, profile.state].filter(Boolean).join(', ')}
           </div>
         )}
         {profile.employees && (
           <div className="flex items-center gap-2">
             <Users size={12} className="shrink-0 text-slate-400" />
             {profile.employees} employees
+          </div>
+        )}
+        {profile.revenue && (
+          <div className="flex items-center gap-2">
+            <TrendingUp size={12} className="shrink-0 text-slate-400" />
+            Revenue ~{profile.revenue}/yr
           </div>
         )}
         {profile.it_budget && (
@@ -88,6 +94,35 @@ function CompanyCard({ profile }: { profile: CompanyProfile }) {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {profile.tech_stack.length > 0 && (
+        <div>
+          <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-400 flex items-center gap-1">
+            <Cpu size={11} /> Tech Stack
+          </p>
+          <div className="flex flex-wrap gap-1">
+            {profile.tech_stack.map((t, i) => (
+              <span key={i} className="rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-600">{t}</span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {profile.current_initiatives.length > 0 && (
+        <div>
+          <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-400 flex items-center gap-1">
+            <Zap size={11} /> Active Initiatives
+          </p>
+          <ul className="space-y-1">
+            {profile.current_initiatives.map((init, i) => (
+              <li key={i} className="text-xs text-slate-600 flex gap-1.5">
+                <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-300" />
+                {init}
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 

@@ -208,7 +208,8 @@ export default function App() {
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
       handleSubmit()
     }
   }
@@ -264,7 +265,7 @@ export default function App() {
               className="w-full resize-none rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-400 focus:bg-white focus:outline-none transition"
             />
             <div className="mt-3 flex items-center justify-between">
-              <span className="text-xs text-slate-400">Ctrl+Enter to submit</span>
+              <span className="text-xs text-slate-400">Shift+Enter for new line</span>
               <button
                 onClick={() => handleSubmit()}
                 disabled={!question.trim() || loading}

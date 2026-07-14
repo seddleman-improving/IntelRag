@@ -1,30 +1,49 @@
 # IntelRag — Backend
 
 FastAPI + LangChain + Chroma RAG backend for the Consulting Intelligence Platform.
-Provides REST API endpoints for querying company intelligence using a local Ollama LLM.
+Provides REST API endpoints for querying company intelligence using a local LLM.
 
 ---
 
 ## Prerequisites
 
 - **UV** — Python package manager ([install](https://docs.astral.sh/uv/))
-- **Ollama** running on Mac Mini at `192.168.100.224:11434` with `qwen2.5:32b` and `nomic-embed-text` pulled
+- **Ollama** running on Mac Mini at the configured URL with `qwen2.5:32b` and `nomic-embed-text` pulled
 
 ---
 
 ## Setup
 
+All commands below should be run from the `/backend` directory.
+
+### 1. Install dependencies
+
 ```bash
-# From the /backend directory
 uv sync
+```
+
+### 2. Create your `.env` file
+
+```bash
+# Windows (PowerShell)
+Copy-Item .env.example .env
+
+# macOS / Linux
 cp .env.example .env
 ```
 
----
+Open `.env` and set each variable — **all three LLM variables are required** and the backend will not start without them:
 
-## Build the Vector Index (first time + after adding data)
+```env
+LLM_BASE_URL=http://<your-llm-host>:11434
+LLM_MODEL=qwen2.5:32b
+EMBED_MODEL=nomic-embed-text
+CHROMA_PERSIST_DIR=./chroma_db
+```
 
-After cloning, or whenever you add/change files in `data/`, rebuild the Chroma vector store:
+### 3. Build the Vector Index
+
+Required on first clone and after any changes to files in `data/`:
 
 ```bash
 uv run python scripts/ingest.py
@@ -41,17 +60,20 @@ This wipes the existing index and re-embeds all markdown files from `../data/`. 
 uv run uvicorn app.main:app --reload
 ```
 
-Server runs at `http://localhost:8000`
+Server runs at `http://localhost:8000`. The `--reload` flag watches for code changes and restarts automatically.
+
+**To stop:** press `Ctrl+C` in the terminal running the server.
 
 ---
 
 ## Verify It's Running
 
 ```powershell
-curl.exe -s http://localhost:8000/health
+curl.exe -s http://localhost:8000/api/v1/health
 ```
 
-Expected: `{"status":"ok","service":"intelrag-backend"}`
+Expected when LLM is reachable: `{"backend":"ok","llm":"ok"}`  
+Expected when LLM is down: `{"backend":"ok","llm":"unreachable"}`
 
 ---
 
@@ -67,12 +89,12 @@ FastAPI provides interactive docs automatically at:
 
 ```
 app/
-  main.py          — FastAPI app entry point (CORS, routes)
+  main.py          — FastAPI app entry point (CORS, routes, health check)
   core/
-    config.py      — Settings loaded from .env (Ollama URL, models, Chroma path)
-  api/             — Route handlers go here
+    config.py      — Settings loaded from .env (LLM URL, models, Chroma path)
+  api/             — Route handlers (query, companies)
 scripts/           — Data loading and embedding scripts
-.env.example       — Environment variable template
+.env.example       — Environment variable template (copy to .env)
 pyproject.toml     — Python dependencies (UV-managed)
 ```
 
@@ -80,9 +102,11 @@ pyproject.toml     — Python dependencies (UV-managed)
 
 ## Environment Variables
 
-| Variable | Default | Description |
+All variables are read from `.env` (see `.env.example` for the template).
+
+| Variable | Required | Description |
 |---|---|---|
-| `OLLAMA_BASE_URL` | `http://192.168.100.224:11434` | Ollama server URL |
-| `OLLAMA_MODEL` | `qwen2.5:32b` | LLM model name |
-| `OLLAMA_EMBED_MODEL` | `nomic-embed-text` | Embedding model name |
-| `CHROMA_PERSIST_DIR` | `./chroma_db` | Chroma vector DB storage path |
+| `LLM_BASE_URL` | ✅ Yes | Base URL of the LLM server (e.g. Ollama) |
+| `LLM_MODEL` | ✅ Yes | LLM model name for answering queries |
+| `EMBED_MODEL` | ✅ Yes | Embedding model name for vector indexing |
+| `CHROMA_PERSIST_DIR` | No | Chroma vector DB path (default: `./chroma_db`) |

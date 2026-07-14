@@ -30,7 +30,7 @@ app.include_router(companies_router, prefix="/api/v1/companies", tags=["companie
 def health_check():
     llm_ok = False
     try:
-        req = urllib.request.urlopen(f"{settings.ollama_base_url}/api/tags", timeout=3)
+        req = urllib.request.urlopen(f"{settings.llm_base_url}/api/tags", timeout=2)
         llm_ok = req.status == 200
     except Exception:
         llm_ok = False
